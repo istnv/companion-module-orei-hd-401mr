@@ -1,0 +1,20 @@
+{
+	"name": "orei-hd-401mr",
+	"version": "1.0.0",
+	"api_version": "1.0.0",
+	"keywords": [
+		"OREI",
+		"quad",
+		"multi-view"
+	],
+	"manufacturer": "OREI",
+	"product": "HD-401MR",
+	"shortname": "oq",
+	"description": "OREI Quad Multi-Viewer module for Companion",
+	"main": "index.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"author": "John A Knight, Jr <istnv@ayesti.com>",
+	"license": "MIT"
+}
