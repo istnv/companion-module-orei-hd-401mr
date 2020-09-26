@@ -126,6 +126,7 @@ class instance extends instance_skel {
 
 		this.COMMANDS = {
 			PWR: 	{ label: 'Switcher Power', optdesc: 'Power', noResp: false, pstcat: 'Settings', choices: this.CHOICE_ONOFF },
+			OSD: 	{ label: 'On Screen Display', optdesc: 'OSD', noResp: false, pstcat: 'Settings', choices: this.CHOICE_ONOFF },
 			VBX: 	{ label: 'On Screen Split Line', optdesc: 'OSL', noResp: false, pstcat: 'Settings', choices: this.CHOICE_ONOFF },
 			RES:	{ label: 'Output Resolution', optdesc: 'OutRes', noResp: false, pstcat: 'Settings', choices: this.CHOICE_RES },
 			SMD:	{ label: 'Full Screen Mode', optdesc: 'FS', noResp: false, pstcat: 'Modes', choices: this.CHOICE_INPUT },

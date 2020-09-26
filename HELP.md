@@ -6,7 +6,7 @@ This module controls an OREI HDMI 4x1 Quad Multi-Viewer HD-401MR. <a href="https
   * gives a consistent signal to source devices even in standby
   * instant switching between inputs
 
-The HD-401MR uses an RS-232 serial port for remote control. To access this from Companion you will need a device or software to provice a TCP connection to the serial port.<br>
+The HD-401MR uses a serial (RS-232) port for remote control. To access this from Companion you will need a device or software to provice a TCP connection to the serial port.<br>
 
 If the device is near the companion computer, look for the `generic-ip-serial` helper module which should work with a USB to serial port adapter.<br>
 
