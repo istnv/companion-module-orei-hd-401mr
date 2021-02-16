@@ -42,7 +42,7 @@ class instance extends instance_skel {
 			this.socket.destroy();
 			delete this.socket;
 		}
-		debug("destroy", this.id)
+		debug("destroy", this.id);
 	}
 
 	/**
@@ -74,7 +74,7 @@ class instance extends instance_skel {
 	}
 
 	/**
-	 * Apply new/updated user selections 
+	 * Apply new/updated user selections
 	 *
 	 * @param {Object} config - user configured items
 	 */
@@ -90,7 +90,7 @@ class instance extends instance_skel {
 	 * @since 1.0.0
 	 */
 	 constants() {
-		
+
 		this.CMD_INTERVAL = 200;
 
 		this.CHOICE_ONOFF = [
@@ -108,12 +108,12 @@ class instance extends instance_skel {
 			{ id: '2', label: 'Input 2' },
 			{ id: '3', label: 'Input 3' },
 			{ id: '4', label: 'Input 4' }
-		]
+		];
 
 		this.CHOICE_DUAL = [
 			{ id: '12', label: 'Input 1 & 2' },
 			{ id: '34', label: 'Input 3 & 4' }
-		]
+		];
 
 		this.ICONS_POWER = [
 			this.ICON_POWER_OFF, this.ICON_POWER_ON, this.ICON_POWER_UNKNOWN
@@ -122,7 +122,7 @@ class instance extends instance_skel {
 		this.POWER_ALIAS = {
 			Pown: 'PWR1',
 			Powf: 'PWR0'
-		}
+		};
 
 		this.COMMANDS = {
 			PWR: 	{ label: 'Switcher Power', optdesc: 'Power', noResp: false, pstcat: 'Settings', choices: this.CHOICE_ONOFF },
@@ -137,7 +137,7 @@ class instance extends instance_skel {
 			SWV:	{ label: 'Select Video Input', optdesc: 'VIn', noResp: true, pstcat: 'Inputs', choices: this.CHOICE_INPUT },
 			SWA:	{ label: 'Select Audio Input', optdesc: 'AIn', noResp: true, pstcat: 'Inputs', choices: this.CHOICE_INPUT },
 			SWA0:	{ label: 'Mute Audio', optdesc: 'AMute', noResp: false, pstcat: 'Inputs' }
-		}
+		};
 }
 	/**
 	 * Creates the configuration fields for web config.
@@ -163,9 +163,9 @@ class instance extends instance_skel {
 				regex: this.REGEX_PORT,
 				default: 60000
 			}
-		]
+		];
 	}
-	
+
 	/**
 	 * Setup the actions.
 	 *
@@ -179,7 +179,7 @@ class instance extends instance_skel {
 		for (let cmd in cmds) {
 			actions[cmd] = {
 				label: cmds[cmd].label
-			}
+			};
 			if (cmds[cmd].choices) {
 				actions[cmd].options = [{
 					label: cmds[cmd].optdesc,
@@ -187,7 +187,7 @@ class instance extends instance_skel {
 					id: 'choice',
 					default: cmds[cmd].choices[0].id,
 					choices: cmds[cmd].choices
-				}]
+				}];
 			}
 		}
 		system.emit('instance_actions', this.id, actions);
@@ -213,7 +213,7 @@ class instance extends instance_skel {
 							style: 'png',
 							text: `${cmds[cmd].optdesc} ${choices[opt].label}`,
 							size: 'auto',
-							color: rgb(255,255,255),
+							color: this.rgb(255,255,255),
 							bgcolor: 0
 						},
 						actions: [
@@ -234,7 +234,7 @@ class instance extends instance_skel {
 						style: 'png',
 						text: cmds[cmd].label,
 						size: 'auto',
-						color: rgb(255,255,255),
+						color: this.rgb(255,255,255),
 						bgcolor: 0
 					},
 					actions: [
@@ -254,8 +254,8 @@ class instance extends instance_skel {
 		let lastErrCode;
 
 		if (!(this.config.host && this.config.port)) return;
-		
-		
+
+
 		this.status(this.STATUS_WARNING, 'Connecting');
 		this.socket = new TCP(this.config.host, this.config.port);
 
@@ -264,7 +264,7 @@ class instance extends instance_skel {
 		});
 
 		this.socket.on('error', (err) => {
-			if (!(err.code == lastErrCode)) {
+			if (err.code != lastErrCode) {
 				debug("Network error", err);
 				this.status(this.STATUS_ERROR, err.message);
 				this.log('error', `Network error: ${err.message}`);
@@ -275,13 +275,13 @@ class instance extends instance_skel {
 
 		this.socket.on('end', () => {
 			debug('TCP Connection Closed');
-			this.status(this.STATUS_ERROR, "Closed")
+			this.status(this.STATUS_ERROR, "Closed");
 			this.isReady = false;
 			if (this.queTimer) {
 				clearInterval(this.queTimer);
 				delete this.queTimer;
 			}
-		})
+		});
 
 		// this.socket.on('close', (hadError) => {
 		// 	debug('TCP Connection Closed');
@@ -301,7 +301,7 @@ class instance extends instance_skel {
 			if (this.queTimer) {
 				clearInterval(this.queTimer);
 			}
-			this.queTimer = setInterval(() => {	this.checkQueue() }, this.CMD_INTERVAL);
+			this.queTimer = setInterval( () => { this.checkQueue(); }, this.CMD_INTERVAL);
 		});
 
 		// separate buffered stream into lines with responses
@@ -319,7 +319,7 @@ class instance extends instance_skel {
 					this.socket.emit('receiveline', line.toString());
 				}
 			}
-			
+
 			receivebuffer = receivebuffer.substr(offset);
 		});
 
@@ -329,7 +329,7 @@ class instance extends instance_skel {
 			let resp = cmd + opt;
 
 			// 'PWR' commands return 'Power On/Off'
-			if (line = this.POWER_ALIAS[cmd+opt]) {
+			if ((line = this.POWER_ALIAS[cmd+opt])) {
 				resp = line;
 				cmd = line.slice(0,3);
 				opt = line.slice(-1);
@@ -341,7 +341,7 @@ class instance extends instance_skel {
 				opt = '';
 			}
 			debug('COM: ', resp);
-			
+
 			if (this.sendQue && this.sendQue.length>0) {
 				let scmd = this.sendQue[0].slice(0,3);
 				// if the 'next' command has unreliable (no) response
@@ -366,9 +366,9 @@ class instance extends instance_skel {
 	/**
 	 * The device seems to get confused and ignores multiple commands
 	 * sent too fast. This is not much of a problem pressing single action keys.
-	 * Adding multiple actions to a single 'startup' key 
+	 * Adding multiple actions to a single 'startup' key
 	 * (Power on, OSD off, OSL off, Res 1080) will hang.
-	 * So we wait until a reponse from the last command before 
+	 * So we wait until a reponse from the last command before
 	 * sending the next one.
 	 *
 	 * If the send/wait que is empty, send command immediately
@@ -417,7 +417,7 @@ class instance extends instance_skel {
 					this.lastCmd = '';
 					this.lastCmdTries = 1;
 				}
-				
+
 			}
 		}
 	}
@@ -437,17 +437,17 @@ class instance extends instance_skel {
 	 * @since 1.0.0
 	 */
 	action(action) {
-		
+
 		// abort if not configured or connected
 		if (!this.isReady) return;
 
 		let opt = action.options;
 		let cmd = action.action;
 
-		// attach user selection to command 
+		// attach user selection to command
 		if (opt) {
 			cmd += opt.choice;
-		} 
+		}
 
 		if (cmd != "") {
 			this.cueCmd(cmd);
