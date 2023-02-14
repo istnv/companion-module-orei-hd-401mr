@@ -28,7 +28,7 @@ class instance extends instance_skel {
 
 		this.isReady = false;
 		this.constants();
-		this.buildActions(system);
+		this.buildActions();
 		this.buildPresets();
 	}
 
@@ -190,7 +190,7 @@ class instance extends instance_skel {
 				}];
 			}
 		}
-		system.emit('instance_actions', this.id, actions);
+		this.setActions(actions);
 	}
 
 	/**
