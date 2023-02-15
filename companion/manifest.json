@@ -1,0 +1,32 @@
+{
+	"id": "orei-hd-401mr",
+	"name": "orei-hd-401mr",
+	"shortname": "oq",
+	"description": "OREI Quad Multi-Viewer module for Companion",
+	"version": "0.0.0",
+	"license": "MIT",
+	"repository": "https://github.com/bitfocus/companion-module-orei-hd-401mr.git",
+	"bugs": "https://github.com/bitfocus/companion-module-orei-hd-401mr/issues",
+	"maintainers": [
+		{
+			"name": "John A Knight, Jr",
+			"email": "istnv@ayesti.com"
+		}
+	],
+	"legacyIds": [],
+	"runtime": {
+		"type": "node18",
+		"api": "nodejs-ipc",
+		"apiVersion": "0.0.0",
+		"entrypoint": "../index.js"
+	},
+	"manufacturer": "OREI",
+	"products": [
+		"HD-401MR"
+	],
+	"keywords": [
+		"OREI",
+		"Quad",
+		"Multi-view"
+	]
+}

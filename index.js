@@ -1,29 +1,26 @@
-const TCP = require('../../tcp')
-const instance_skel = require('../../instance_skel')
-
-var debug
-var log
+/* eslint-disable no-useless-escape */
+import { combineRgb, Regex } from '@companion-module/base'
+import { runEntrypoint, InstanceBase, InstanceStatus, TCPHelper } from '@companion-module/base'
+import { UpgradeScripts } from './upgrades.js'
 
 /**
  * Companion instance class orei-hd-401mr
  * Control module for the OREI HD-401MR HDMI 4x1 Quad Multi-viewer
  *
- * @extends instance_skel
- * @version 1.0.0
- * @since 1.0.0
- * @author John A Knight, Jr <istnv@ayesti.com>
+ * @extends InstanceBase
+ * @version 2.0.0
+ * @since 2.0.0
+ * @author John A Knight, Jr <istnv@istnv.com>
  */
-class instance extends instance_skel {
+class OQInstance extends InstanceBase {
 	/**
 	 * Create an instance of the orei-hd-401mr module
 	 *
-	 * @param {EventEmitter} system - event processor/scheduler
-	 * @param {string} id - the instance ID
-	 * @param {Object} config - saved user configuration parameters
-	 * @since 1.0.0
+	 * @param {Object} internal - ID and flags
+	 * @since 2.0.0
 	 */
-	constructor(system, id, config) {
-		super(system, id, config)
+	constructor(internal) {
+		super(internal)
 
 		this.isReady = false
 		this.constants()
@@ -34,7 +31,7 @@ class instance extends instance_skel {
 	/**
 	 * Clean up the instance before it is destroyed.
 	 *
-	 * @since 1.0.0
+	 * @since 2.0.0
 	 */
 	destroy() {
 		if (this.socket !== undefined) {
@@ -48,12 +45,10 @@ class instance extends instance_skel {
 	 * Main initialization function called once the module
 	 * is OK to start doing things.
 	 *
-	 * @since 1.0.0
+	 * @since 2.0.0
 	 */
-	init() {
-		debug = this.debug
-		log = this.log
-		this.applyConfig(this.config)
+	async init(config) {
+		this.applyConfig(config)
 	}
 
 	/**
@@ -61,9 +56,9 @@ class instance extends instance_skel {
 	 * called from companion when user changes the configuration
 	 *
 	 * @param {Object} config - the new configuration
-	 * @since 1.0.0
+	 * @since 2.0.0
 	 */
-	updateConfig(config) {
+	async configUpdated(config) {
 		if (this.socket !== undefined) {
 			this.socket.destroy()
 			delete this.socket
@@ -86,7 +81,7 @@ class instance extends instance_skel {
 	/**
 	 * assign constants for this module
 	 *
-	 * @since 1.0.0
+	 * @since 2.0.0
 	 */
 	constants() {
 		this.CMD_INTERVAL = 200
@@ -158,23 +153,23 @@ class instance extends instance_skel {
 	 * called from companion when the config page is shown
 	 *
 	 * @returns {Array} the config fields
-	 * @since 1.0.0
+	 * @since 2.0.0
 	 */
-	config_fields() {
+	getConfigFields() {
 		return [
 			{
 				type: 'textinput',
 				id: 'host',
 				label: 'Target IP',
 				width: 8,
-				regex: this.REGEX_IP,
+				regex: Regex.IP,
 			},
 			{
 				type: 'textinput',
 				id: 'port',
 				label: 'Target Port',
 				width: 4,
-				regex: this.REGEX_PORT,
+				regex: Regex.PORT,
 				default: 60000,
 			},
 		]
@@ -183,16 +178,19 @@ class instance extends instance_skel {
 	/**
 	 * Setup the actions.
 	 *
-	 * @param {EventEmitter} system - event processor/scheduler
-	 * @since 1.0.0
+	 * @since 2.0.0
 	 */
-	buildActions(system) {
+	buildActions() {
 		let actions = {}
 		let cmds = this.COMMANDS
 
 		for (let cmd in cmds) {
 			actions[cmd] = {
-				label: cmds[cmd].label,
+				name: cmds[cmd].label,
+				callback: async (action, context) => {
+					this.cueAction(action)
+				},
+				options: []
 			}
 			if (cmds[cmd].choices) {
 				actions[cmd].options = [
@@ -206,13 +204,13 @@ class instance extends instance_skel {
 				]
 			}
 		}
-		this.setActions(actions)
+		this.setActionDefinitions(actions)
 	}
 
 	/**
 	 * build presets for the commands
 	 *
-	 * @since 1.0.0
+	 * @since 2.0.0
 	 */
 	buildPresets() {
 		let presets = []
@@ -229,7 +227,7 @@ class instance extends instance_skel {
 							style: 'png',
 							text: `${cmds[cmd].optdesc} ${choices[opt].label}`,
 							size: 'auto',
-							color: this.rgb(255, 255, 255),
+							color: combineRgb(255, 255, 255),
 							bgcolor: 0,
 						},
 						actions: [
@@ -250,7 +248,7 @@ class instance extends instance_skel {
 						style: 'png',
 						text: cmds[cmd].label,
 						size: 'auto',
-						color: this.rgb(255, 255, 255),
+						color: combineRgb(255, 255, 255),
 						bgcolor: 0,
 					},
 					actions: [{ action: cmd }],
@@ -262,6 +260,8 @@ class instance extends instance_skel {
 
 	/**
 	 * set up the TCP socket for communication
+	 *
+	 * @since 2.0.0
 	 */
 	init_tcp() {
 		// ignore if not configured
@@ -269,17 +269,16 @@ class instance extends instance_skel {
 
 		if (!(this.config.host && this.config.port)) return
 
-		this.status(this.STATUS_WARNING, 'Connecting')
-		this.socket = new TCP(this.config.host, this.config.port)
+		this.updateStatus(InstanceStatus.Connecting, 'Connecting')
+		this.socket = new TCPHelper(this.config.host, this.config.port)
 
 		this.socket.on('status_change', (status, message) => {
-			// this.status(status, message);
+			// this.updateStatus(InstanceStatus.UnknownWarning, message)
 		})
 
 		this.socket.on('error', (err) => {
 			if (err.code != lastErrCode) {
-				debug('Network error', err)
-				this.status(this.STATUS_ERROR, err.message)
+				this.updateStatus(InstanceStatus.ConnectionFailure, err.message)
 				this.log('error', `Network error: ${err.message}`)
 				if (this.refreshInterval) clearInterval(this.refreshInterval)
 				lastErrCode = err.code
@@ -287,8 +286,7 @@ class instance extends instance_skel {
 		})
 
 		this.socket.on('end', () => {
-			debug('TCP Connection Closed')
-			this.status(this.STATUS_ERROR, 'Closed')
+			this.updateStatus(InstanceStatus.Disconnected, 'Closed')
 			this.isReady = false
 			if (this.queTimer) {
 				clearInterval(this.queTimer)
@@ -296,19 +294,8 @@ class instance extends instance_skel {
 			}
 		})
 
-		// this.socket.on('close', (hadError) => {
-		// 	debug('TCP Connection Closed');
-		// 	this.status(this.STATUS_ERROR, "Closed")
-		// 	this.isReady = false;
-		// 	if (this.queTimer) {
-		// 		clearInterval(this.queTimer);
-		// 		delete this.queTimer;
-		// 	}
-		// });
-
 		this.socket.on('connect', () => {
-			this.status(this.STATE_OK)
-			debug('Connected')
+			this.updateStatus(InstanceStatus.Ok, 'Connected')
 			this.isReady = true
 			if (this.queTimer) {
 				clearInterval(this.queTimer)
@@ -390,6 +377,7 @@ class instance extends instance_skel {
 	 * otherwise add this command to the end of the cue
 	 *
 	 * @param {string} cmd - control command to send
+	 * @since 2.0.0
 	 */
 	cueCmd(cmd) {
 		if (this.sendQue.length == 0) {
@@ -398,7 +386,12 @@ class instance extends instance_skel {
 		this.sendQue.push(cmd)
 	}
 
-	sendIt(cmd) {
+	/**
+	 * Actually transmit a command
+	 *
+	 * @since 2.0.0
+	 */
+		sendIt(cmd) {
 		// new command or a retry?
 		if (this.lastCmd != cmd) {
 			this.lastCmdTries = 1
@@ -435,8 +428,14 @@ class instance extends instance_skel {
 		}
 	}
 
+	/**
+	 * Notify if TCP error occurs
+	 *
+	 * @since 2.0.0
+	 */
 	sendError(err) {
 		if (err) {
+			this.updateStatus(InstanceStatus.ConnectionFailure, err)
 			debug('TCP write error', err)
 		}
 	}
@@ -444,17 +443,17 @@ class instance extends instance_skel {
 	/**
 	 * Process/execute the provided action.
 	 * called from companion when requested from
-	 * a button up/down action
+	 * a button press, release, step, or trigger
 	 *
-	 * @param {Object} action - the action to be executed
-	 * @since 1.0.0
+	 * @param {Object} action - the action (with options) to be executed
+	 * @since 2.0.0
 	 */
-	action(action) {
+	cueAction(action) {
 		// abort if not configured or connected
 		if (!this.isReady) return
 
 		let opt = action.options
-		let cmd = action.action
+		let cmd = action.actionId
 
 		// attach user selection to command
 		if (opt) {
@@ -467,4 +466,5 @@ class instance extends instance_skel {
 	}
 }
 
-exports = module.exports = instance
+runEntrypoint(OQInstance, UpgradeScripts)
+
