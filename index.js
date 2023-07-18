@@ -22,10 +22,7 @@ class OQInstance extends InstanceBase {
 	constructor(internal) {
 		super(internal)
 
-		this.isReady = false
 		this.constants()
-		this.buildActions()
-		this.buildPresets()
 	}
 
 	/**
@@ -38,7 +35,6 @@ class OQInstance extends InstanceBase {
 			this.socket.destroy()
 			delete this.socket
 		}
-		debug('destroy', this.id)
 	}
 
 	/**
@@ -74,6 +70,10 @@ class OQInstance extends InstanceBase {
 	 */
 	applyConfig(config) {
 		this.config = config
+		this.isReady = false
+		this.buildActions()
+		this.buildPresets()
+
 		this.sendQue = []
 		this.init_tcp()
 	}
@@ -190,7 +190,7 @@ class OQInstance extends InstanceBase {
 				callback: async (action, context) => {
 					this.cueAction(action)
 				},
-				options: []
+				options: [],
 			}
 			if (cmds[cmd].choices) {
 				actions[cmd].options = [
@@ -221,37 +221,54 @@ class OQInstance extends InstanceBase {
 				let choices = cmds[cmd].choices
 				for (let opt in choices) {
 					presets.push({
+						type: 'button',
 						category: cmds[cmd].pstcat,
-						label: `${cmds[cmd].optdesc} ${choices[opt].label}`,
-						bank: {
-							style: 'png',
+						name: `${cmds[cmd].optdesc} ${choices[opt].label}`,
+						style: {
 							text: `${cmds[cmd].optdesc} ${choices[opt].label}`,
 							size: 'auto',
 							color: combineRgb(255, 255, 255),
 							bgcolor: 0,
 						},
-						actions: [
+						steps: [
 							{
-								action: cmd,
-								options: {
-									choice: choices[opt].id,
-								},
+								down: [
+									{
+										actionId: cmd,
+										options: {
+											choice: choices[opt].id,
+										},
+									},
+								],
+								up: [],
 							},
 						],
+						feedbacks: [],
 					})
 				}
 			} else {
 				presets.push({
+					type: 'button',
 					category: cmds[cmd].pstcat,
-					label: cmds[cmd].optdesc,
-					bank: {
-						style: 'png',
+					name: cmds[cmd].optdesc,
+					style: {
 						text: cmds[cmd].label,
 						size: 'auto',
 						color: combineRgb(255, 255, 255),
 						bgcolor: 0,
 					},
-					actions: [{ action: cmd }],
+					steps: [
+						{
+							down: [
+								{
+									actionId: cmd,
+									options: {},
+								},
+							],
+							up: [],
+						},
+					],
+					feedbacks: [],
 				})
 			}
 		}
@@ -342,7 +359,7 @@ class OQInstance extends InstanceBase {
 				resp = cmd
 				opt = ''
 			}
-			debug('COM: ', resp)
+			this.log('debug',`COM: ${resp}`)
 
 			if (this.sendQue && this.sendQue.length > 0) {
 				let scmd = this.sendQue[0].slice(0, 3)
@@ -391,13 +408,13 @@ class OQInstance extends InstanceBase {
 	 *
 	 * @since 2.0.0
 	 */
-		sendIt(cmd) {
+	sendIt(cmd) {
 		// new command or a retry?
 		if (this.lastCmd != cmd) {
 			this.lastCmdTries = 1
 			this.lastCmdAt = Date.now()
 		}
-		this.socket.send(cmd + '\r\n', (err) => this.sendError(err))
+		this.socket.send(cmd + '\r\n').then(null, this.sendError)
 		this.lastCmd = cmd
 	}
 
@@ -434,9 +451,10 @@ class OQInstance extends InstanceBase {
 	 * @since 2.0.0
 	 */
 	sendError(err) {
+		let self = this
 		if (err) {
-			this.updateStatus(InstanceStatus.ConnectionFailure, err)
-			debug('TCP write error', err)
+			self.updateStatus(InstanceStatus.UnknownError, err)
+			self.log('debug',`TCP write error ${err}`)
 		}
 	}
 
@@ -467,4 +485,3 @@ class OQInstance extends InstanceBase {
 }
 
 runEntrypoint(OQInstance, UpgradeScripts)
-
